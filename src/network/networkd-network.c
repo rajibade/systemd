@@ -1144,6 +1144,7 @@ static const char* const keep_configuration_table[_KEEP_CONFIGURATION_MAX] = {
         [KEEP_CONFIGURATION_DYNAMIC]         = "dynamic",
         [KEEP_CONFIGURATION_STATIC]          = "static",
         [KEEP_CONFIGURATION_YES]             = "yes",
+        [KEEP_CONFIGURATION_DYNAMIC_PERSIST] = "dynamic-persist",
 };
 
 DEFINE_STRING_TABLE_LOOKUP_WITH_BOOLEAN(keep_configuration, KeepConfiguration, KEEP_CONFIGURATION_YES);
