@@ -24,6 +24,7 @@
         "-Bridge\0"                               \
         "-FooOverUDP\0"                           \
         "-GENEVE\0"                               \
+        "-HSR\0"                                  \
         "-IPoIB\0"                                \
         "-IPVLAN\0"                               \
         "-IPVTAP\0"                               \
@@ -59,6 +60,7 @@ typedef enum NetDevKind {
         NETDEV_KIND_GENEVE,
         NETDEV_KIND_GRE,
         NETDEV_KIND_GRETAP,
+        NETDEV_KIND_HSR,
         NETDEV_KIND_IFB,
         NETDEV_KIND_IP6GRE,
         NETDEV_KIND_IP6GRETAP,
@@ -165,7 +167,7 @@ typedef struct NetDevVTable {
         /* create netdev, if not done via rtnl */
         int (*create)(NetDev *netdev);
 
-        /* perform additional configuration after netdev has been createad */
+        /* perform additional configuration after netdev has been created */
         int (*post_create)(NetDev *netdev, Link *link);
 
         /* verify that compulsory configuration options were specified */

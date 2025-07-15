@@ -20,6 +20,7 @@
 
 #define WORKER_NUM_MAX UINT64_C(2048)
 
+static int default_log_level = LOG_INFO;
 static bool arg_debug = false;
 bool arg_daemonize = false;
 
@@ -279,7 +280,7 @@ static void manager_merge_config_log_level(Manager *manager) {
         if (manager->config.trace)
                 manager->config.log_level = LOG_DEBUG;
         else
-                MERGE_NON_NEGATIVE(log_level, log_get_max_level());
+                MERGE_NON_NEGATIVE(log_level, default_log_level);
 }
 
 static void manager_merge_config(Manager *manager) {
@@ -342,7 +343,7 @@ void manager_set_log_level(Manager *manager, int log_level) {
                 return;
 
         log_set_max_level(manager->config.log_level);
-        manager_kill_workers(manager, /* force = */ false);
+        manager_kill_workers(manager, SIGTERM);
 }
 
 void manager_set_trace(Manager *manager, bool enable) {
@@ -357,7 +358,7 @@ void manager_set_trace(Manager *manager, bool enable) {
                 return;
 
         log_set_max_level(manager->config.log_level);
-        manager_kill_workers(manager, /* force = */ false);
+        manager_kill_workers(manager, SIGTERM);
 }
 
 static void manager_adjust_config(UdevConfig *config) {
@@ -433,13 +434,15 @@ void manager_set_environment(Manager *manager, char * const *v) {
         }
 
         if (changed)
-                manager_kill_workers(manager, /* force = */ false);
+                manager_kill_workers(manager, SIGTERM);
 }
 
 int manager_load(Manager *manager, int argc, char *argv[]) {
         int r;
 
         assert(manager);
+
+        default_log_level = log_get_max_level();
 
         manager_parse_udev_config(&manager->config_by_udev_conf);
 
@@ -482,4 +485,42 @@ UdevReloadFlags manager_reload_config(Manager *manager) {
                 return UDEV_RELOAD_KILL_WORKERS;
 
         return 0;
+}
+
+static usec_t extra_timeout_usec(void) {
+        static usec_t saved = 10 * USEC_PER_SEC;
+        static bool parsed = false;
+        usec_t timeout;
+        const char *e;
+        int r;
+
+        if (parsed)
+                return saved;
+
+        parsed = true;
+
+        e = getenv("SYSTEMD_UDEV_EXTRA_TIMEOUT_SEC");
+        if (!e)
+                return saved;
+
+        r = parse_sec(e, &timeout);
+        if (r < 0)
+                log_debug_errno(r, "Failed to parse $SYSTEMD_UDEV_EXTRA_TIMEOUT_SEC=%s, ignoring: %m", e);
+
+        if (timeout > 5 * USEC_PER_HOUR) /* Add an arbitrary upper bound */
+                log_debug("Parsed $SYSTEMD_UDEV_EXTRA_TIMEOUT_SEC=%s is too large, ignoring.", e);
+        else
+                saved = timeout;
+
+        return saved;
+}
+
+usec_t manager_kill_worker_timeout(Manager *manager) {
+        assert(manager);
+
+        /* Manager.timeout_usec is also used as the timeout for running programs specified in
+         * IMPORT{program}=, PROGRAM=, or RUN=. Here, let's add an extra time before the manager
+         * kills a worker, to make it possible that the worker detects timed out of spawned programs,
+         * kills them, and finalizes the event. */
+        return usec_add(manager->config.timeout_usec, extra_timeout_usec());
 }

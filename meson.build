@@ -271,7 +271,6 @@ conf.set_quoted('SYSTEMCTL_BINARY_PATH',                      bindir / 'systemct
 conf.set_quoted('SYSTEMD_BINARY_PATH',                        libexecdir / 'systemd')
 conf.set_quoted('SYSTEMD_EXECUTOR_BINARY_PATH',               libexecdir / 'systemd-executor')
 conf.set_quoted('SYSTEMD_CATALOG_DIR',                        catalogdir)
-conf.set_quoted('SYSTEMD_CGROUPS_AGENT_PATH',                 libexecdir / 'systemd-cgroups-agent')
 conf.set_quoted('SYSTEMD_CRYPTSETUP_PATH',                    bindir / 'systemd-cryptsetup')
 conf.set_quoted('SYSTEMD_EXPORT_PATH',                        libexecdir / 'systemd-export')
 conf.set_quoted('SYSTEMD_FSCK_PATH',                          libexecdir / 'systemd-fsck')
@@ -380,6 +379,7 @@ possible_common_cc_flags = [
         '-Wendif-labels',
         '-Werror=bool-compare',
         '-Werror=discarded-qualifiers',
+        '-Werror=flex-array-member-not-at-end',
         '-Werror=format=2',
         '-Werror=format-signedness',
         '-Werror=implicit-function-declaration',
@@ -1988,11 +1988,12 @@ endif
 conf.set_quoted('VERSION_TAG', version_tag)
 
 vcs_tag = get_option('vcs-tag')
-version_h = vcs_tag(
+version_h = custom_target('version',
+        build_always_stale : vcs_tag,
         input : 'src/version/version.h.in',
         output : 'version.h',
-        fallback : '',
-        command : [vcs_tag ? 'tools/vcs-tag.sh' : 'true', get_option('mode')],
+        capture : true,
+        command : ['tools/vcs-tag.sh', '@INPUT@', get_option('mode'), vcs_tag ? '1' : '0'],
 )
 
 shared_lib_tag = get_option('shared-lib-tag')
@@ -2304,7 +2305,6 @@ subdir('src/boot')
 subdir('src/bootctl')
 subdir('src/busctl')
 subdir('src/cgls')
-subdir('src/cgroups-agent')
 subdir('src/cgtop')
 subdir('src/coredump')
 subdir('src/creds')
@@ -2691,6 +2691,13 @@ if mkosi.found()
                 ],
                 depends : mkosi_depends,
         )
+endif
+
+if install_tests
+        install_subdir('mkosi',
+                       install_dir : testsdir,
+                       exclude_files : ['mkosi.local.conf', 'mkosi.key', 'mkosi.crt'],
+                       exclude_directories : ['mkosi.local'])
 endif
 
 ############################################################

@@ -253,7 +253,9 @@ struct Manager {
          * here: the first unit interested in a PID is stored in the hashmap 'watch_pids', keyed by the
          * PID. If there are other units interested too they'll be stored in a NULL-terminated array, stored
          * in the hashmap 'watch_pids_more', keyed by the PID. Thus to go through the full list of units
-         * interested in a PID we must look into both hashmaps. */
+         * interested in a PID we must look into both hashmaps.
+         *
+         * NB: the ownership of PidRefs is held by Unit.pids! */
         Hashmap *watch_pids;            /* PidRef* → Unit* */
         Hashmap *watch_pids_more;       /* PidRef* → NUL terminated array of Unit* */
 
@@ -268,9 +270,6 @@ struct Manager {
         char *notify_socket;
         int notify_fd;
         sd_event_source *notify_event_source;
-
-        int cgroups_agent_fd;
-        sd_event_source *cgroups_agent_event_source;
 
         int signal_fd;
         sd_event_source *signal_event_source;
@@ -510,6 +509,7 @@ struct Manager {
 
         /* Pin the systemd-executor binary, so that it never changes until re-exec, ensuring we don't have
          * serialization/deserialization compatibility issues during upgrades. */
+        char *executor_path;
         int executor_fd;
 
         unsigned soft_reboots_count;
@@ -684,8 +684,7 @@ enum {
         EVENT_PRIORITY_USER_LOOKUP       = SD_EVENT_PRIORITY_NORMAL-12,
         EVENT_PRIORITY_MOUNT_TABLE       = SD_EVENT_PRIORITY_NORMAL-11,
         EVENT_PRIORITY_SWAP_TABLE        = SD_EVENT_PRIORITY_NORMAL-11,
-        EVENT_PRIORITY_CGROUP_AGENT      = SD_EVENT_PRIORITY_NORMAL-10, /* cgroupv1 */
-        EVENT_PRIORITY_CGROUP_INOTIFY    = SD_EVENT_PRIORITY_NORMAL-10, /* cgroupv2 */
+        EVENT_PRIORITY_CGROUP_INOTIFY    = SD_EVENT_PRIORITY_NORMAL-10,
         EVENT_PRIORITY_CGROUP_OOM        = SD_EVENT_PRIORITY_NORMAL-9,
         EVENT_PRIORITY_PIDREF            = SD_EVENT_PRIORITY_NORMAL-8,
         EVENT_PRIORITY_HANDOFF_TIMESTAMP = SD_EVENT_PRIORITY_NORMAL-7,

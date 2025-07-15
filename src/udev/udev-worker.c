@@ -193,7 +193,7 @@ static int worker_process_device(UdevWorker *worker, sd_device *dev) {
          * The user-facing side of this: https://systemd.io/BLOCK_DEVICE_LOCKING */
         r = worker_lock_whole_disk(dev, &fd_lock);
         if (r == -EAGAIN) {
-                log_device_debug(dev, "Block device is currently locked, requeueing the event.");
+                log_device_debug(dev, "Block device is currently locked, requeuing the event.");
 
                 r = sd_notify(/* unset_environment = */ false, "TRY_AGAIN=1");
                 if (r < 0) {
@@ -210,7 +210,7 @@ static int worker_process_device(UdevWorker *worker, sd_device *dev) {
                 (void) worker_mark_block_device_read_only(dev);
 
         /* Disable watch during event processing. */
-        r = udev_watch_end(worker->inotify_fd, dev);
+        r = udev_watch_end(worker, dev);
         if (r < 0)
                 log_device_warning_errno(dev, r, "Failed to remove inotify watch, ignoring: %m");
 
@@ -228,8 +228,8 @@ static int worker_process_device(UdevWorker *worker, sd_device *dev) {
 
         /* Enable watch if requested. */
         if (udev_event->inotify_watch) {
-                r = udev_watch_begin(worker->inotify_fd, dev);
-                if (r < 0 && r != -ENOENT) /* The device may be already removed, ignore -ENOENT. */
+                r = udev_watch_begin(worker, dev);
+                if (r < 0)
                         log_device_warning_errno(dev, r, "Failed to add inotify watch, ignoring: %m");
         }
 

@@ -369,9 +369,20 @@ static int setup_input(
         case EXEC_INPUT_TTY_FORCE:
         case EXEC_INPUT_TTY_FAIL: {
                 _cleanup_close_ int tty_fd = -EBADF;
+                _cleanup_free_ char *resolved = NULL;
                 const char *tty_path;
 
                 tty_path = ASSERT_PTR(exec_context_tty_path(context));
+
+                if (tty_is_console(tty_path)) {
+                        r = resolve_dev_console(&resolved);
+                        if (r < 0)
+                                log_debug_errno(r, "Failed to resolve /dev/console, ignoring: %m");
+                        else {
+                                log_debug("Resolved /dev/console to %s", resolved);
+                                tty_path = resolved;
+                        }
+                }
 
                 tty_fd = acquire_terminal(tty_path,
                                           i == EXEC_INPUT_TTY_FAIL  ? ACQUIRE_TERMINAL_TRY :
@@ -843,6 +854,7 @@ restore_stdio:
 
 static int get_fixed_user(
                 const char *user_or_uid,
+                bool prefer_nss,
                 const char **ret_username,
                 uid_t *ret_uid,
                 gid_t *ret_gid,
@@ -854,7 +866,8 @@ static int get_fixed_user(
         assert(user_or_uid);
         assert(ret_username);
 
-        r = get_user_creds(&user_or_uid, ret_uid, ret_gid, ret_home, ret_shell, USER_CREDS_CLEAN);
+        r = get_user_creds(&user_or_uid, ret_uid, ret_gid, ret_home, ret_shell,
+                           USER_CREDS_CLEAN|(prefer_nss ? USER_CREDS_PREFER_NSS : 0));
         if (r < 0)
                 return r;
 
@@ -1190,6 +1203,7 @@ static int setup_pam(
 
         _cleanup_(barrier_destroy) Barrier barrier = BARRIER_NULL;
         _cleanup_strv_free_ char **e = NULL;
+        _cleanup_free_ char *tty = NULL;
         pam_handle_t *handle = NULL;
         sigset_t old_ss;
         int pam_code = PAM_SUCCESS, r;
@@ -1225,15 +1239,14 @@ static int setup_pam(
                 goto fail;
         }
 
-        const char *tty = context->tty_path;
-        if (!tty) {
-                _cleanup_free_ char *q = NULL;
+        if (getttyname_malloc(STDIN_FILENO, &tty) >= 0) {
+                _cleanup_free_ char *q = path_join("/dev", tty);
+                if (!q) {
+                        r = -ENOMEM;
+                        goto fail;
+                }
 
-                /* Hmm, so no TTY was explicitly passed, but an fd passed to us directly might be a TTY. Let's figure
-                 * out if that's the case, and read the TTY off it. */
-
-                if (getttyname_malloc(STDIN_FILENO, &q) >= 0)
-                        tty = strjoina("/dev/", q);
+                free_and_replace(tty, q);
         }
 
         if (tty) {
@@ -1843,7 +1856,7 @@ static int apply_protect_hostname(const ExecContext *c, const ExecParameters *p,
         }
 #endif
 
-        return 0;
+        return 1;
 }
 
 static void do_idle_pipe_dance(int idle_pipe[static 4]) {
@@ -1962,8 +1975,10 @@ static int build_environment(
          * could cause problem for e.g. getty, since login doesn't override $HOME, and $LOGNAME and $SHELL don't
          * really make much sense since we're not logged in. Hence we conditionalize the three based on
          * SetLoginEnvironment= switch. */
-        if (!c->user && !c->dynamic_user && p->runtime_scope == RUNTIME_SCOPE_SYSTEM) {
-                r = get_fixed_user("root", &username, NULL, NULL, &home, &shell);
+        if (!username && !c->dynamic_user && p->runtime_scope == RUNTIME_SCOPE_SYSTEM) {
+                assert(!c->user);
+
+                r = get_fixed_user("root", /* prefer_nss = */ false, &username, NULL, NULL, &home, &shell);
                 if (r < 0)
                         return log_exec_debug_errno(c,
                                                     p,
@@ -4440,8 +4455,8 @@ static int setup_delegated_namespaces(
                 r = apply_protect_hostname(context, params, reterr_exit_status);
                 if (r < 0)
                         return r;
-
-                log_exec_debug(context, params, "Set up %sUTS namespace", delegate ? "delegated " : "");
+                if (r > 0)
+                        log_exec_debug(context, params, "Set up %sUTS namespace", delegate ? "delegated " : "");
         }
 
         return 0;
@@ -4893,7 +4908,14 @@ int exec_invoke(
                         u = NULL;
 
                 if (u) {
-                        r = get_fixed_user(u, &username, &uid, &gid, &pwent_home, &shell);
+                        /* We can't use nss unconditionally for root without risking deadlocks if some IPC services
+                         * will be started by pid1 and are ordered after us. But if SetLoginEnvironment= is
+                         * enabled *explicitly* (i.e. no exec_context_get_set_login_environment() here),
+                         * or PAM shall be invoked, let's consult NSS even for root, so that the user
+                         * gets accurate $SHELL in session(-like) contexts. */
+                        r = get_fixed_user(u,
+                                           /* prefer_nss = */ context->set_login_environment > 0 || context->pam_name,
+                                           &username, &uid, &gid, &pwent_home, &shell);
                         if (r < 0) {
                                 *exit_status = EXIT_USER;
                                 return log_exec_error_errno(context, params, r, "Failed to determine user credentials: %m");
@@ -5456,8 +5478,8 @@ int exec_invoke(
                         *exit_status = EXIT_USER;
                         return log_exec_error_errno(context, params, r, "Failed to set up user namespacing: %m");
                 }
-
-                log_debug("Set up privileged user namespace");
+                if (r > 0)
+                        log_debug("Set up privileged user namespace");
         }
 
         /* Call setup_delegated_namespaces() the second time to unshare all delegated namespaces. */

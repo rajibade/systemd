@@ -1096,7 +1096,7 @@ bool tty_is_vc(const char *tty) {
 
         /* NB: for >= 0 values no range check is conducted here, on the assumption that the caller will
          * either extract vtnr through vtnr_from_tty() later where ERANGE would be reported, or doesn't care
-         * about whether it's strictly valid, but only asking "does this fall into the vt catogory?", for which
+         * about whether it's strictly valid, but only asking "does this fall into the vt category?", for which
          * "yes" seems to be a better answer. */
 
         return vtnr_from_tty_raw(tty, /* ret = */ NULL) >= 0;
@@ -1156,10 +1156,12 @@ int resolve_dev_console(char **ret) {
                 tty = active;
         }
 
-        if (tty != active)
-                return strdup_to(ret, tty);
+        _cleanup_free_ char *path = NULL;
+        path = path_join("/dev", tty);
+        if (!path)
+                return -ENOMEM;
 
-        *ret = TAKE_PTR(active);
+        *ret = TAKE_PTR(path);
         return 0;
 }
 
@@ -1231,9 +1233,7 @@ bool tty_is_vc_resolve(const char *tty) {
 
         assert(tty);
 
-        tty = skip_dev_prefix(tty);
-
-        if (streq(tty, "console")) {
+        if (streq(skip_dev_prefix(tty), "console")) {
                 if (resolve_dev_console(&resolved) < 0)
                         return false;
 
@@ -2338,7 +2338,7 @@ static int scan_cursor_position_response(
                         } else {
                                 int d = undecchar(c);
 
-                                /* As above, add the decimal charatcer to our column number */
+                                /* As above, add the decimal character to our column number */
                                 if (d < 0 || context->column > (UINT_MAX-d)/10)
                                         context->state = CURSOR_TEXT;
                                 else
