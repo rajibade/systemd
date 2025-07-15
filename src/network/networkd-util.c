@@ -145,6 +145,10 @@ bool link_should_mark_config(Link *link, bool only_static, NetworkConfigSource s
         if (FLAGS_SET(link->network->keep_configuration, KEEP_CONFIGURATION_DYNAMIC) &&
             IN_SET(protocol, RTPROT_DHCP, RTPROT_RA, RTPROT_REDIRECT))
                 return false;
+        /* When dynamic, keep all dynamic configs. */
+        if (FLAGS_SET(link->network->keep_configuration, KEEP_CONFIGURATION_DYNAMIC_PERSIST) &&
+            IN_SET(protocol, RTPROT_DHCP, RTPROT_RA, RTPROT_REDIRECT))
+                return false;
 
         /* Otherwise, mark the config. */
         return true;
