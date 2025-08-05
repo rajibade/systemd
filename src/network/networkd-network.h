@@ -38,10 +38,8 @@ typedef enum KeepConfiguration {
         KEEP_CONFIGURATION_DYNAMIC          = KEEP_CONFIGURATION_DYNAMIC_ON_START | KEEP_CONFIGURATION_DYNAMIC_ON_STOP,
         KEEP_CONFIGURATION_STATIC           = 1 << 2,
         KEEP_CONFIGURATION_YES              = KEEP_CONFIGURATION_DYNAMIC | KEEP_CONFIGURATION_STATIC,
-        KEEP_CONFIGURATION_DYNAMIC_PERSIST  = 1 << 3,
         _KEEP_CONFIGURATION_MAX,
         _KEEP_CONFIGURATION_INVALID         = -EINVAL,
-        KEEP_CONFIGURATION_
 } KeepConfiguration;
 
 typedef enum ActivationPolicy {
@@ -54,6 +52,13 @@ typedef enum ActivationPolicy {
         _ACTIVATION_POLICY_MAX,
         _ACTIVATION_POLICY_INVALID = -EINVAL,
 } ActivationPolicy;
+
+typedef enum DHCPClientPersistLeases {
+        DHCP_CLIENT_PERSIST_LEASES_NO      = 0, /* Not enabled */
+        DHCP_CLIENT_PERSIST_LEASES_YES     = 1 << 0, /* Blanket enabled, Change if more Persistent lease attribute needed */
+        _DHCP_CLIENT_PERSIST_LEASES_MAX,
+        _DHCP_CLIENT_PERSIST_LEASES_INVALID = -EINVAL,
+} DHCPClientPersistLeases;
 
 typedef struct Manager Manager;
 
@@ -114,6 +119,9 @@ struct Network {
         char **bind_carrier;
         bool default_route_on_device;
         AddressFamily ip_masquerade;
+
+        /*Included struct for persist leases */
+        DHCPClientPersistLeases dhcp_client_persist_leases;
 
         /* Protocol independent settings */
         UseDomains use_domains;
@@ -446,6 +454,8 @@ CONFIG_PARSER_PROTOTYPE(config_parse_keep_configuration);
 CONFIG_PARSER_PROTOTYPE(config_parse_activation_policy);
 CONFIG_PARSER_PROTOTYPE(config_parse_link_group);
 CONFIG_PARSER_PROTOTYPE(config_parse_ignore_carrier_loss);
+/* add config parse prototype here maybe? */
+CONFIG_PARSER_PROTOTYPE(config_parse_dhcp_client_persist_leases);
 
 const struct ConfigPerfItem* network_network_gperf_lookup(const char *key, GPERF_LEN_TYPE length);
 
@@ -454,3 +464,6 @@ KeepConfiguration keep_configuration_from_string(const char *s) _pure_;
 
 const char* activation_policy_to_string(ActivationPolicy i) _const_;
 ActivationPolicy activation_policy_from_string(const char *s) _pure_;
+
+const char* dhcp_client_persist_leases_to_string(DHCPClientPersistLeases i) _const_;
+DHCPClientPersistLeases dhcp_client_persist_leases_from_string(const char *s) _pure_;

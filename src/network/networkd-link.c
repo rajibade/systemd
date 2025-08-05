@@ -1422,7 +1422,7 @@ int link_reconfigure_impl(Link *link, LinkReconfigurationFlag flags) {
         /* Then, apply new .network file */
         link->network = network_ref(network);
 
-        if (FLAGS_SET(network->keep_configuration, KEEP_CONFIGURATION_DYNAMIC) || FLAGS_SET(network->keep_configuration, KEEP_CONFIGURATION_DYNAMIC_PERSIST) ||
+        if (FLAGS_SET(network->keep_configuration, KEEP_CONFIGURATION_DYNAMIC) ||
             !FLAGS_SET(flags, LINK_RECONFIGURE_CLEANLY)) {
                 /* To make 'networkctl reconfigure INTERFACE' work safely for an interface whose new .network
                  * file has KeepConfiguration=dynamic or yes, even if a clean reconfiguration is requested,
