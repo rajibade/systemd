@@ -59,6 +59,10 @@ static int run(int argc, char *argv[]) {
                 if (r < 0)
                         log_warning_errno(r, "Could not create runtime directory: %m");
 
+                r = mkdir_safe_label("/var/lib/systemd/network/", 0755, uid, gid, MKDIR_WARN_MODE);
+                if (r < 0)
+                        log_warning_errno(r, "Could not create runtime directory: %m");
+
                 r = drop_privileges(uid, gid,
                                     (1ULL << CAP_NET_ADMIN) |
                                     (1ULL << CAP_NET_BIND_SERVICE) |
@@ -75,7 +79,7 @@ static int run(int argc, char *argv[]) {
         FOREACH_STRING(p,
                        "/run/systemd/netif/links/",
                        "/run/systemd/netif/leases/",
-                       "/var/lib/systemd/network/netif/leases/") {
+                       "/var/lib/systemd/network/leases") {
                 r = mkdir_safe_label(p, 0755, UID_INVALID, GID_INVALID, MKDIR_WARN_MODE);
                 if (r < 0)
                         log_warning_errno(r, "Could not create directory '%s': %m", p);
