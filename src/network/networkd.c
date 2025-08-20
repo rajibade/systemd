@@ -78,8 +78,7 @@ static int run(int argc, char *argv[]) {
          * following subdirectories after drop_privileges() to make them owned by systemd-network. */
         FOREACH_STRING(p,
                        "/run/systemd/netif/links/",
-                       "/run/systemd/netif/leases/",
-                       "/var/lib/systemd/network/leases") {
+                       "/run/systemd/netif/leases/") {
                 r = mkdir_safe_label(p, 0755, UID_INVALID, GID_INVALID, MKDIR_WARN_MODE);
                 if (r < 0)
                         log_warning_errno(r, "Could not create directory '%s': %m", p);
