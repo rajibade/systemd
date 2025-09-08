@@ -1231,6 +1231,8 @@ int dhcp_lease_save(sd_dhcp_lease *lease, const char *lease_file) {
         char **search_domains;
         usec_t t;
         int r;
+        sd_id128_t boot_id;
+        char boot_id_string[SD_ID128_STRING_MAX];
 
         assert(lease);
         assert(lease_file);
@@ -1361,6 +1363,14 @@ int dhcp_lease_save(sd_dhcp_lease *lease, const char *lease_file) {
         r = sd_dhcp_lease_get_timestamp(lease, CLOCK_REALTIME, &t);
         if (r >= 0)
                 fprintf(f, "TIMESTAMP_REALTIME=%s\n", FORMAT_TIMESTAMP_STYLE(t, TIMESTAMP_US));
+
+        r = sd_dhcp_lease_get_timestamp(lease, CLOCK_BOOTTIME, &t);
+        if (r >= 0)
+                fprintf(f, "TIMESTAMP_BOOTTIME=%s\n", FORMAT_TIMESTAMP_STYLE(t, TIMESTAMP_US));
+
+        r = sd_id128_get_boot(&boot_id);
+        if (r >= 0)
+                fprintf(f, "BOOTID=%s\n", sd_id128_to_string(boot_id, boot_id_string));
 
         r = sd_dhcp_lease_get_vendor_specific(lease, &data, &data_len);
         if (r >= 0) {
