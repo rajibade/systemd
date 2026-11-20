@@ -73,6 +73,8 @@ struct sd_dhcp_client {
         char *lease_file;
         bool keep_expired_lease;
         bool lease_timed_out;
+        bool lease_restored;
+        bool lease_extended;
 };
 
 int dhcp_client_set_state_callback(

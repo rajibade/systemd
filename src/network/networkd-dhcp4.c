@@ -1254,6 +1254,8 @@ static int dhcp_validate_saved_lease(Link *link, sd_dhcp_lease *lease) {
         if (r < 0)
                 return log_link_warning_errno(link, r, "Failed to update the lease lifetime: %m");
 
+        link->dhcp_client->lease_restored = true;
+        link->dhcp_client->lease_extended = use_expired;
         return 1;
 }
 
@@ -1499,6 +1501,9 @@ static int dhcp4_handler(sd_dhcp_client *client, int event, void *userdata) {
                                         r = dhcp4_request_address_and_routes(link, /* announce= */ false);
                                         if (r < 0)
                                                 return log_link_warning_errno(link, r, "Failed to configure extended lease: %m");
+
+                                        client->lease_extended = true;
+
                                         return 0;
                                 }
                         }

@@ -1147,6 +1147,7 @@ static int client_handle_message(sd_dhcp_client *client, const struct iovec *iov
 
         case DHCP_ACK:
                 dhcp_lease_set_timestamp(lease, timestamp);
+                client->lease_restored = client->lease_extended = false;
                 return client_enter_bound(client, lease);
 
         case DHCP_NAK:
