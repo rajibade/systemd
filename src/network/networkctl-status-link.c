@@ -878,6 +878,14 @@ static int link_status_one(
                         return table_log_add_error(r);
         }
 
+        if (info->dhcp4_lease_expiry != USEC_INFINITY) {
+                r = table_add_many(table,
+                                   TABLE_FIELD, "DHCPv4 Lease Expiry",
+                                   TABLE_TIMESTAMP, info->dhcp4_lease_expiry);
+                if (r < 0)
+                        return table_log_add_error(r);
+        }
+
         dhcp_state = dhcp6_state_to_string(info->dhcp6_client_state);
         if (dhcp_state) {
                 r = table_add_many(table,
@@ -909,6 +917,14 @@ static int link_status_one(
                 r = table_add_many(table,
                                    TABLE_FIELD, "DHCPv6 Lease Timestamp",
                                    TABLE_TIMESTAMP, info->dhcp6_lease_timestamp);
+                if (r < 0)
+                        return table_log_add_error(r);
+        }
+
+        if (info->dhcp6_lease_expiry != USEC_INFINITY) {
+                r = table_add_many(table,
+                                   TABLE_FIELD, "DHCPv6 Lease Expiry",
+                                   TABLE_TIMESTAMP, info->dhcp6_lease_expiry);
                 if (r < 0)
                         return table_log_add_error(r);
         }

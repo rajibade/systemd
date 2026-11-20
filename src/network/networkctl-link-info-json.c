@@ -90,6 +90,7 @@ static int acquire_link_dhcp4_client_info(LinkInfo *link) {
 
         static const sd_json_dispatch_field lease_dispatch_table[] = {
                 { "LeaseTimestampUSec", _SD_JSON_VARIANT_TYPE_INVALID, sd_json_dispatch_uint64, offsetof(LinkInfo, dhcp4_lease_timestamp), 0 },
+                { "LeaseExpiryUSec", _SD_JSON_VARIANT_TYPE_INVALID, sd_json_dispatch_uint64, offsetof(LinkInfo, dhcp4_lease_expiry), 0 },
                 {}
         };
         (void) sd_json_dispatch(lease, lease_dispatch_table, SD_JSON_LOG | SD_JSON_WARNING | SD_JSON_ALLOW_EXTENSIONS, link);
@@ -98,6 +99,9 @@ static int acquire_link_dhcp4_client_info(LinkInfo *link) {
          * wallclock time. */
         if (link->dhcp4_lease_timestamp != USEC_INFINITY)
                 link->dhcp4_lease_timestamp = map_clock_usec(link->dhcp4_lease_timestamp, CLOCK_BOOTTIME, CLOCK_REALTIME);
+
+        if (link->dhcp4_lease_expiry != USEC_INFINITY)
+                link->dhcp4_lease_expiry = map_clock_usec(link->dhcp4_lease_expiry, CLOCK_BOOTTIME, CLOCK_REALTIME);
 
         return 0;
 }
@@ -129,6 +133,7 @@ static int acquire_link_dhcp6_client_info(LinkInfo *link) {
 
         static const sd_json_dispatch_field lease_dispatch_table[] = {
                 { "LeaseTimestampUSec", _SD_JSON_VARIANT_TYPE_INVALID, sd_json_dispatch_uint64, offsetof(LinkInfo, dhcp6_lease_timestamp), 0 },
+                { "LeaseExpiryUSec", _SD_JSON_VARIANT_TYPE_INVALID, sd_json_dispatch_uint64, offsetof(LinkInfo, dhcp6_lease_expiry), 0 },
                 {}
         };
         (void) sd_json_dispatch(lease, lease_dispatch_table, SD_JSON_LOG | SD_JSON_WARNING | SD_JSON_ALLOW_EXTENSIONS, link);
@@ -137,6 +142,9 @@ static int acquire_link_dhcp6_client_info(LinkInfo *link) {
          * wallclock time. */
         if (link->dhcp6_lease_timestamp != USEC_INFINITY)
                 link->dhcp6_lease_timestamp = map_clock_usec(link->dhcp6_lease_timestamp, CLOCK_BOOTTIME, CLOCK_REALTIME);
+
+        if (link->dhcp6_lease_expiry != USEC_INFINITY)
+                link->dhcp6_lease_expiry = map_clock_usec(link->dhcp6_lease_expiry, CLOCK_BOOTTIME, CLOCK_REALTIME);
 
         return 0;
 }
@@ -194,7 +202,9 @@ int link_info_parse_description(LinkInfo *link, sd_varlink *vl) {
         link->dhcp4_client_state = _DHCP_STATE_INVALID;
         link->dhcp6_client_state = _DHCP6_STATE_INVALID;
         link->dhcp4_lease_timestamp = USEC_INFINITY;
+        link->dhcp4_lease_expiry = USEC_INFINITY;
         link->dhcp6_lease_timestamp = USEC_INFINITY;
+        link->dhcp6_lease_expiry = USEC_INFINITY;
 
         if (!vl)
                 return 0;

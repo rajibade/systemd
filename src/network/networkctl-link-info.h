@@ -69,10 +69,12 @@ typedef struct LinkInfo {
         sd_dhcp_client_id dhcp_client_id;
         DHCPState dhcp4_client_state;
         usec_t dhcp4_lease_timestamp;
+        usec_t dhcp4_lease_expiry;
 
         /* DHCPv6 */
         DHCP6State dhcp6_client_state;
         usec_t dhcp6_lease_timestamp;
+        usec_t dhcp6_lease_expiry;
 
         /* bridge info */
         uint32_t forward_delay;

@@ -1198,6 +1198,7 @@ static int dhcp6_client_vendor_options_append_json(Link *link, sd_json_variant *
 static int dhcp6_client_lease_append_json(Link *link, sd_json_variant **v) {
         _cleanup_(sd_json_variant_unrefp) sd_json_variant *w = NULL;
         usec_t ts = USEC_INFINITY, t1 = USEC_INFINITY, t2 = USEC_INFINITY;
+        usec_t lease_expiry_usec = USEC_INFINITY;
         int r;
 
         assert(link);
@@ -1207,6 +1208,10 @@ static int dhcp6_client_lease_append_json(Link *link, sd_json_variant **v) {
                 return 0;
 
         r = sd_dhcp6_lease_get_timestamp(link->dhcp6_lease, CLOCK_BOOTTIME, &ts);
+        if (r < 0 && r != -ENODATA)
+                return r;
+
+        r = sd_dhcp6_lease_get_lifetime_timestamp(link->dhcp6_lease, CLOCK_BOOTTIME, &lease_expiry_usec);
         if (r < 0 && r != -ENODATA)
                 return r;
 
@@ -1222,6 +1227,7 @@ static int dhcp6_client_lease_append_json(Link *link, sd_json_variant **v) {
                         &w,
                         JSON_BUILD_PAIR_FINITE_USEC("Timeout1USec", t1),
                         JSON_BUILD_PAIR_FINITE_USEC("Timeout2USec", t2),
+                        JSON_BUILD_PAIR_FINITE_USEC("LeaseExpiryUSec", lease_expiry_usec),
                         JSON_BUILD_PAIR_FINITE_USEC("LeaseTimestampUSec", ts));
         if (r < 0)
                 return r;
@@ -1355,6 +1361,7 @@ static int dhcp6_client_append_json(Link *link, sd_json_variant **v) {
 static int dhcp_client_lease_append_json(Link *link, sd_json_variant **v) {
         _cleanup_(sd_json_variant_unrefp) sd_json_variant *w = NULL;
         usec_t lease_timestamp_usec = USEC_INFINITY, t1 = USEC_INFINITY, t2 = USEC_INFINITY;
+        usec_t lease_expiry_usec = USEC_INFINITY;
         const char *hostname = NULL;
         int r;
 
@@ -1365,6 +1372,10 @@ static int dhcp_client_lease_append_json(Link *link, sd_json_variant **v) {
                 return 0;
 
         r = sd_dhcp_lease_get_timestamp(link->dhcp_lease, CLOCK_BOOTTIME, &lease_timestamp_usec);
+        if (r < 0 && r != -ENODATA)
+                return r;
+
+        r = sd_dhcp_lease_get_lifetime_timestamp(link->dhcp_lease, CLOCK_BOOTTIME, &lease_expiry_usec);
         if (r < 0 && r != -ENODATA)
                 return r;
 
@@ -1388,6 +1399,7 @@ static int dhcp_client_lease_append_json(Link *link, sd_json_variant **v) {
         r = sd_json_buildo(
                         &w,
                         JSON_BUILD_PAIR_FINITE_USEC("LeaseTimestampUSec", lease_timestamp_usec),
+                        JSON_BUILD_PAIR_FINITE_USEC("LeaseExpiryUSec", lease_expiry_usec),
                         JSON_BUILD_PAIR_FINITE_USEC("Timeout1USec", t1),
                         JSON_BUILD_PAIR_FINITE_USEC("Timeout2USec", t2),
                         JSON_BUILD_PAIR_STRING_NON_EMPTY("Hostname", hostname),
