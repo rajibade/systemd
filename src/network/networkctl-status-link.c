@@ -870,6 +870,31 @@ static int link_status_one(
                 }
         }
 
+        if (info->dhcp4_persist_leases) {
+                r = table_add_many(table,
+                                   TABLE_FIELD, "DHCPv4 Persist Leases",
+                                   TABLE_STRING, info->dhcp4_persist_leases);
+                if (r < 0)
+                        return table_log_add_error(r);
+        }
+
+        if (info->dhcp4_lease_restored || info->dhcp4_lease_extended) {
+                const char *state;
+
+                if (info->dhcp4_lease_restored && info->dhcp4_lease_extended)
+                        state = "restored, extended";
+                else if (info->dhcp4_lease_restored)
+                        state = "restored";
+                else
+                        state = "extended";
+
+                r = table_add_many(table,
+                                   TABLE_FIELD, "DHCPv4 Lease State",
+                                   TABLE_STRING, state);
+                if (r < 0)
+                        return table_log_add_error(r);
+        }
+
         if (info->dhcp4_lease_timestamp != USEC_INFINITY) {
                 r = table_add_many(table,
                                    TABLE_FIELD, "DHCPv4 Lease Timestamp",

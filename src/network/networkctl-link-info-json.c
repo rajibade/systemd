@@ -77,6 +77,9 @@ static int acquire_link_dhcp4_client_info(LinkInfo *link) {
 
         static const sd_json_dispatch_field state_dispatch_table[] = {
                 { "State", _SD_JSON_VARIANT_TYPE_INVALID, dispatch_dhcp_state, offsetof(LinkInfo, dhcp4_client_state), 0 },
+                { "PersistLeases", SD_JSON_VARIANT_STRING, sd_json_dispatch_string, offsetof(LinkInfo, dhcp4_persist_leases), 0 },
+                { "LeaseRestored", SD_JSON_VARIANT_BOOLEAN, sd_json_dispatch_stdbool, offsetof(LinkInfo, dhcp4_lease_restored), 0 },
+                { "LeaseExtended", SD_JSON_VARIANT_BOOLEAN, sd_json_dispatch_stdbool, offsetof(LinkInfo, dhcp4_lease_extended), 0 },
                 {}
         };
         (void) sd_json_dispatch(v, state_dispatch_table, SD_JSON_LOG | SD_JSON_WARNING | SD_JSON_ALLOW_EXTENSIONS, link);

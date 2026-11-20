@@ -1151,7 +1151,7 @@ static int dhcp_lease_acquired(sd_dhcp_client *client, Link *link) {
         return dhcp4_request_address_and_routes(link, /* announce= */ true);
 }
 
-static DHCPClientPersistLeases link_get_dhcp_client_persist_leases(Link *link) {
+DHCPClientPersistLeases link_get_dhcp_client_persist_leases(Link *link) {
         assert(link);
         assert(link->manager);
         assert(link->network);

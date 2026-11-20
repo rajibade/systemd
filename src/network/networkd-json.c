@@ -20,6 +20,7 @@
 #include "netif-util.h"
 #include "networkd-address.h"
 #include "networkd-dhcp-common.h"
+#include "networkd-dhcp4.h"
 #include "networkd-json.h"
 #include "networkd-link.h"
 #include "networkd-manager.h"
@@ -1523,6 +1524,26 @@ static int dhcp_client_state_append_json(Link *link, sd_json_variant **v) {
         return sd_json_variant_merge_objectbo(v, JSON_BUILD_PAIR_ENUM("State", s));
 }
 
+static int dhcp_client_persist_append_json(Link *link, sd_json_variant **v) {
+        DHCPClientPersistLeases p;
+
+        assert(link);
+        assert(v);
+
+        if (!link->dhcp_client || !link->network)
+                return 0;
+
+        p = link_get_dhcp_client_persist_leases(link);
+        if (p == DHCP_CLIENT_PERSIST_LEASES_NO)
+                return 0;
+
+        return sd_json_variant_merge_objectbo(
+                        v,
+                        SD_JSON_BUILD_PAIR_STRING("PersistLeases", dhcp_client_persist_leases_to_string(p)),
+                        SD_JSON_BUILD_PAIR_BOOLEAN("LeaseRestored", link->dhcp_client->lease_restored),
+                        SD_JSON_BUILD_PAIR_BOOLEAN("LeaseExtended", link->dhcp_client->lease_extended));
+}
+
 static int dhcp_client_append_json(Link *link, sd_json_variant **v) {
         _cleanup_(sd_json_variant_unrefp) sd_json_variant *w = NULL;
         int r;
@@ -1550,6 +1571,10 @@ static int dhcp_client_append_json(Link *link, sd_json_variant **v) {
                 return r;
 
         r = dhcp_client_state_append_json(link, &w);
+        if (r < 0)
+                return r;
+
+        r = dhcp_client_persist_append_json(link, &w);
         if (r < 0)
                 return r;
 

@@ -70,6 +70,9 @@ typedef struct LinkInfo {
         DHCPState dhcp4_client_state;
         usec_t dhcp4_lease_timestamp;
         usec_t dhcp4_lease_expiry;
+        char *dhcp4_persist_leases;
+        bool dhcp4_lease_restored;
+        bool dhcp4_lease_extended;
 
         /* DHCPv6 */
         DHCP6State dhcp6_client_state;
